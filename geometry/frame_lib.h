@@ -7,10 +7,16 @@
 
 #include <Eigen/Dense>
 
-class frame_lib {
-
+template<typename T>
+class Frame {
+    Eigen::Matrix<T, 4, 4> frame;
 };
 
+
+template<typename T>
+Eigen::Matrix<T,3, 3> gen_random_orthogonal(){
+  return Eigen::Quaternion<T>::UnitRandom().toRotationMatrix();
+}
 
 
 
