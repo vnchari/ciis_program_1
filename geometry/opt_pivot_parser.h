@@ -12,6 +12,7 @@
 #include "Eigen/dense"
 #include <iterator>
 #include <list>
+#include <vector>
 
 template<typename T>
 class Opt_Pivot_Parser {
@@ -20,22 +21,22 @@ class Opt_Pivot_Parser {
     char tmp;
     int n_D, n_H, n_Frames;
     std::string file_name_for_output;
-    std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> n_D_vals;
-    std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> n_H_vals;
+    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> n_D_vals;
+    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> n_H_vals;
     void initialize_matrices();
 
 public:
     Opt_Pivot_Parser(std::string_view file_name);
     ~Opt_Pivot_Parser();
-    void show_values(std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> listName);
-    std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> get_n_D_vals() {return n_D_vals;};
-    std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> get_n_H_vals() {return n_H_vals;};
+    void show_values(std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> listName);
+    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> get_n_D_vals() {return n_D_vals;};
+    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> get_n_H_vals() {return n_H_vals;};
 
 };
 
 template<typename T>
-void Opt_Pivot_Parser<T>::show_values(std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> listName) {
-    typename std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>>::iterator it;
+void Opt_Pivot_Parser<T>::show_values(std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> listName) {
+    typename std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>>::iterator it;
     for (it = listName.begin(); it != listName.end(); ++it) {
         std::cout << '\n' << *it << '\n';
     }

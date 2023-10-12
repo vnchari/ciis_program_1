@@ -9,8 +9,6 @@ add_executable(programming_assigment_one main.cpp
         geometry/cal_readings_parser.h
         geometry/em_pivot_parser.h
         geometry/opt_pivot_parser.h
-        geometry/output_file_creator.cpp
         geometry/output_file_creator.h
-        geometry/pivot_calibration.cpp
         geometry/pivot_calibration.h
 )

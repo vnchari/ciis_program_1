@@ -8,9 +8,10 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include "Eigen/dense"
+#include "Eigen/Dense"
 #include <iterator>
 #include <list>
+#include <vector>
 
 template<typename T>
 class Cal_Readings_Parser {
@@ -20,24 +21,24 @@ class Cal_Readings_Parser {
     int n_D, n_A, n_C, n_Frames;
     std::string file_name_for_output;
 
-    std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> n_D_vals;
-    std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> n_A_vals;
-    std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> n_C_vals;
+    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> n_D_vals;
+    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> n_A_vals;
+    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> n_C_vals;
     void initialize_matrices();
 
 public:
     Cal_Readings_Parser(std::string_view file_name);
     ~Cal_Readings_Parser();
-    void show_values(std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> listName);
-    std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> get_n_D_vals() {return n_D_vals;};
-    std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> get_n_A_vals() {return n_A_vals;};
-    std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> get_n_C_vals() {return n_C_vals;};
+    void show_values(std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> listName);
+    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> get_n_D_vals() {return n_D_vals;};
+    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> get_n_A_vals() {return n_A_vals;};
+    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> get_n_C_vals() {return n_C_vals;};
 
 };
 
 template<typename T>
-void Cal_Readings_Parser<T>::show_values(std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> listName) {
-    typename std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>>::iterator it;
+void Cal_Readings_Parser<T>::show_values(std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> listName) {
+    typename std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>>::iterator it;
     for (it = listName.begin(); it != listName.end(); ++it) {
         std::cout << '\n' << *it;
     }

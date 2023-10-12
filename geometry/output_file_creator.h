@@ -20,13 +20,13 @@ class Output_File_Creator {
 public:
     Output_File_Creator(int n_C, int n_frames,
                         Eigen::Vector<T, 3> em_prob_pos, Eigen::Vector<T, 3> opt_prob_pos,
-                        std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> c_expected_vals);
+                        std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> c_expected_vals);
 };
 
 template<typename T>
 Output_File_Creator<T>::Output_File_Creator(int n_C, int n_frames,
                                             Eigen::Vector<T, 3> em_prob_pos, Eigen::Vector<T, 3> opt_prob_pos,
-                                            std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> c_expected_vals) {
+                                            std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> c_expected_vals) {
     std::ofstream output_file;
     output_file.open("C:\\Users\\Aabha\\Desktop\\CIS\\PA1\\ciis_program_1\\PA1-OUTPUT-1.txt");
     output_file << n_C << ", " << n_frames << ", NAME-OUTPUT1.TXT \n";
@@ -37,13 +37,13 @@ Output_File_Creator<T>::Output_File_Creator(int n_C, int n_frames,
     tmp.resize(3, n_C);
         output_file << std::fixed;
         output_file << std::setprecision(2);
-    while (!c_expected_vals.empty()) {
-        tmp = c_expected_vals.front();
-        for (int i = 0; i < n_C; i++) {
-            output_file << "  " << tmp(0, i) << ",   " << tmp(1, i) << ",   " << tmp(2, i) << "\n";
+
+        for (auto elem : c_expected_vals) {
+            tmp = c_expected_vals[elem];
+            for (int i = 0; i < n_C; i++) {
+                output_file << "  " << tmp(0, i) << ",   " << tmp(1, i) << ",   " << tmp(2, i) << "\n";
+            }
         }
-        c_expected_vals.pop_front();
-    }
     output_file.close();
 
 }

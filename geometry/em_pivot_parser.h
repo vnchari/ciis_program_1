@@ -11,6 +11,7 @@
 #include "Eigen/dense"
 #include <iterator>
 #include <list>
+#include <vector>
 
 template<typename T>
 class Em_Pivot_Parser {
@@ -19,20 +20,20 @@ class Em_Pivot_Parser {
     char tmp;
     int n_G, n_Frames;
     std::string file_name_for_output;
-    std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> n_G_vals;
+    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> n_G_vals;
     void initialize_matrices();
 
 public:
     Em_Pivot_Parser(std::string_view file_name);
     ~Em_Pivot_Parser();
-    void show_values(std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> listName);
-    std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> get_n_G_vals() {return n_G_vals;};
+    void show_values(std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> listName);
+    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> get_n_G_vals() {return n_G_vals;};
 
 };
 
 template<typename T>
-void Em_Pivot_Parser<T>::show_values(std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>> listName) {
-    typename std::list<Eigen::Matrix<T, 3, Eigen::Dynamic>>::iterator it;
+void Em_Pivot_Parser<T>::show_values(std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>> listName) {
+    typename std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>>::iterator it;
     for (it = listName.begin(); it != listName.end(); ++it) {
         std::cout << '\n' << *it << '\n';
     }

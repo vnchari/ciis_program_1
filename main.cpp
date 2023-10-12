@@ -6,6 +6,7 @@
 #include "geometry/em_pivot_parser.h"
 #include "geometry/opt_pivot_parser.h"
 #include "geometry/output_file_creator.h"
+#include "geometry/pivot_calibration.h"
 
 int main() {
     std::string_view cal_body =
@@ -23,8 +24,11 @@ int main() {
     //std::cout << opt_pivot_parser.get_n_D_vals().front() << '\n';
     //std::cout << opt_pivot_parser.get_n_H_vals().front();
 
+    auto em_pivot_calibration = Pivot_Calibration<double> (em_pivot_parser.get_n_G_vals());
+    /*
     Output_File_Creator<double> (cal_body_parser.get_n_c_vals().cols(),cal_readings_parser.get_n_C_vals().size(),
                                  Eigen::Vector3d(0,0,1),
                                  Eigen::Vector3d(0,0,1), cal_readings_parser.get_n_C_vals());
-    return 0;
+    */
+     return 0;
 }
