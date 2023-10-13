@@ -1,0 +1,7 @@
+cmake is needed. generate build dir as follows:
+
+cmake -DCMAKE_BUILD_TYPE=Release -G "CodeBlocks - Unix Makefiles" -S /home/vchari/ciis/programming_assigment_one -B /home/vchari/ciis/programming_assigment_one/DIRNAME
+
+then run:
+
+cmake --build /home/vchari/ciis/programming_assigment_one/DIRNAME --target programming_assigment_one

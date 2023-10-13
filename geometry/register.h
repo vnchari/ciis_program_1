@@ -11,7 +11,7 @@
 namespace Registration {
 
     uint64_t COHERENTPOINTDRIFT = 0;
-    uint64_t EXTENDEDPROCRUSTES = 1;
+    uint64_t PROCRUSTES = 1;
 
 template<typename T>
 class CoherentPointDrift {
@@ -113,26 +113,32 @@ CoherentPointDrift<T>::CoherentPointDrift(Eigen::Matrix<T, -1, 3, Eigen::RowMajo
 }
 
 template<typename T>
-class ExtendedProcrustes {
+class Procrustes {
     Eigen::JacobiSVD<Eigen::Matrix<T, 3, 3>> EIGENSVD;
 public:
     Eigen::Matrix<T, 3, 3> B;
     Eigen::Vector<T, 3> t;
 
-    ExtendedProcrustes(Eigen::Matrix<T, -1, 3> M, Eigen::Matrix<T, -1, 3> N);
+    Procrustes(Eigen::Matrix<T, -1, 3> M, Eigen::Matrix<T, -1, 3> N);
 };
 
 template<typename T>
-ExtendedProcrustes<T>::ExtendedProcrustes(Eigen::Matrix<T, -1, 3> M,
-                                          Eigen::Matrix<T, -1, 3> N) {
-  // Y = RM + t
+Procrustes<T>::Procrustes(const Eigen::Matrix<T, -1, 3> M,
+                          const Eigen::Matrix<T, -1, 3> N) {
+  // N = FM = RM + t
   if (M.rows() != N.rows())
     throw std::invalid_argument("M and N must have the same number of rows.");
   auto num_points = M.rows();
+
+  // compute the centroid of both point sets.
   auto center_M = M.colwise().sum() / num_points;
   auto center_N = N.colwise().sum() / num_points;
+
+  // centering the point sets so that centroid lies at origin.
   auto centered_M = M.rowwise() - center_M;
   auto centered_N = N.rowwise() - center_N;
+
+  //
   EIGENSVD.compute(centered_M.transpose() * centered_N, Eigen::ComputeFullU | Eigen::ComputeFullV);
   auto U_T = EIGENSVD.matrixU().transpose();
   auto V = EIGENSVD.matrixV();
