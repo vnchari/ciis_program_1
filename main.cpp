@@ -1,34 +1,69 @@
 #include <chrono>
 #include <iostream>
+#include "Eigen/StdVector"
 #include "geometry/frame_lib.h"
-#include "geometry/cal_body_parser.h"
-#include "geometry/cal_readings_parser.h"
-#include "geometry/em_pivot_parser.h"
-#include "geometry/opt_pivot_parser.h"
-#include "geometry/output_file_creator.h"
-#include "geometry/pivot_calibration.h"
+#include "geometry/register.h"
+#include "geometry/calibration.h"
+#include "io/read_input_files.h"
+#include "io/write_output_file.h"
 
-int main() {
-    std::string_view cal_body =
-            R"(C:\Users\Aabha\Desktop\CIS\PA1\ciis_program_1\PA1-Student-Data\pa1-debug-b-calbody.txt)";
-    auto cal_body_parser = Cal_Body_Parser<double> (cal_body);
-    std::string_view cal_readings =
-            R"(C:\Users\Aabha\Desktop\CIS\PA1\ciis_program_1\PA1-Student-Data\pa1-debug-b-calreadings.txt)";
-    auto cal_readings_parser = Cal_Readings_Parser<double> (cal_readings);
-    std::string_view em_pivot =
-            R"(C:\Users\Aabha\Desktop\CIS\PA1\ciis_program_1\PA1-Student-Data\pa1-debug-b-empivot.txt)";
-    auto em_pivot_parser = Em_Pivot_Parser<double> (em_pivot);
-    std::string_view opt_pivot =
-            R"(C:\Users\Aabha\Desktop\CIS\PA1\ciis_program_1\PA1-Student-Data\pa1-debug-b-optpivot.txt)";
-    auto opt_pivot_parser = Opt_Pivot_Parser<double> (opt_pivot);
-    //std::cout << opt_pivot_parser.get_n_D_vals().front() << '\n';
-    //std::cout << opt_pivot_parser.get_n_H_vals().front();
+#define PRECISION double
 
-    auto em_pivot_calibration = Pivot_Calibration<double> (em_pivot_parser.get_n_G_vals());
+int main(int argc, char ** argv) {
+  if(argc != 3){
+    std::cerr << "Malformed arguments. arg 1: dir and name prefix of input files (e.g. 'input_files/pa1-debug-a'). "
+                 "arg 2: dir of output_file";
+    exit(1);
+  }
+  auto testname = std::string(argv[1]);
+  auto outname = std::string(argv[2]);
+  FrameGraph<PRECISION> graph(Registration::PROCRUSTES);
+  const auto calbodydata = read_calbody_file<PRECISION>( testname + "-calbody.txt");
+  const auto optpivotdata = read_optpivot_data<PRECISION>( testname + "-optpivot.txt");
+  const auto empivotdata = read_empivot_data<PRECISION>(testname + "-empivot.txt");
+  const auto calreadingsdata = read_calreadings_data<PRECISION>(testname + "-calreadings.txt");
 
-    Output_File_Creator<double> (cal_body_parser.get_n_c_vals().cols(),cal_readings_parser.get_n_C_vals().size(),
-                                 Eigen::Vector3d(0,0,1),
-                                 Eigen::Vector3d(0,0,1), cal_readings_parser.get_n_C_vals());
-
-     return 0;
+  // Q4
+  for(int i = 0; i < calreadingsdata.n_frames; i++){
+    graph.register_transform("EMTRACKER", calbodydata.n_d_vals.transpose(),
+                             "OPTICAL_TRACKER_FRAME_" + std::to_string(i),
+                             calreadingsdata.n_D_vals[i].transpose());
+  }
+  for(int i = 0; i < calreadingsdata.n_frames; i++){
+    graph.register_transform("CALBODY_LOCAL", calbodydata.n_a_vals.transpose(),
+                             "OPTICAL_TRACKER_FRAME_" + std::to_string(i),
+                             calreadingsdata.n_A_vals[i].transpose());
+  }
+  std::vector<Eigen::Matrix<PRECISION, 3, -1>, Eigen::aligned_allocator<Eigen::Matrix<PRECISION, 3, -1>>> c_expected_vals(calreadingsdata.n_frames);
+  for(int i = 0; i < calreadingsdata.n_frames; i++) {
+    auto tmp = graph.apply_direct_transform(
+            "CALBODY_LOCAL", "OPTICAL_TRACKER_FRAME_" + std::to_string(i),
+            calbodydata.n_c_vals.transpose());
+    tmp = graph.apply_direct_transform("OPTICAL_TRACKER_FRAME_" + std::to_string(i),
+                                 "EMTRACKER", tmp);
+    c_expected_vals[i] = tmp.transpose();
+  }
+  // Q5
+  std::vector<Eigen::Matrix<PRECISION, -1, 3>, Eigen::aligned_allocator<Eigen::Matrix<PRECISION, -1, 3>>> G_vals_transposed =
+          std::vector<Eigen::Matrix<PRECISION, -1, 3>, Eigen::aligned_allocator<Eigen::Matrix<PRECISION, -1, 3>>>(empivotdata.n_G_vals.size());
+  for(size_t i = 0; i < empivotdata.n_G_vals.size(); i++)
+    G_vals_transposed[i] = empivotdata.n_G_vals[i].transpose();
+  auto empivot_results = pivot_calibration_routine(G_vals_transposed);
+  // Q6
+  graph.clear();
+  std::vector<Eigen::Matrix<PRECISION, -1, 3>, Eigen::aligned_allocator<Eigen::Matrix<PRECISION, -1, 3>>> optpivot_H_vals_transposed =
+          std::vector<Eigen::Matrix<PRECISION, -1, 3>, Eigen::aligned_allocator<Eigen::Matrix<PRECISION, -1, 3>>>(optpivotdata.n_H_vals.size());
+  for(size_t i = 0; i < optpivotdata.n_H_vals.size(); i++) {
+    graph.register_transform("EMTRACKER", calbodydata.n_d_vals.transpose(),
+                             "OPTICAL_TRACKER_FRAME_" + std::to_string(i),
+                             optpivotdata.n_D_vals[i].transpose());
+    optpivot_H_vals_transposed[i] = graph.apply_direct_transform("OPTICAL_TRACKER_FRAME_" + std::to_string(i),
+                                                                 "EMTRACKER", optpivotdata.n_H_vals[i].transpose());
+  }
+  auto optpivot_results = pivot_calibration_routine(optpivot_H_vals_transposed);
+  //write files
+  outname = (outname.back() == '/') ? outname : outname + "/";
+  write_output_file<PRECISION>(outname + "-output_us.txt", calreadingsdata.n_C, calreadingsdata.n_frames,
+                            empivot_results.second, optpivot_results.second, c_expected_vals);
+  return 0;
 }
