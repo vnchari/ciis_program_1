@@ -1,7 +1,18 @@
-cmake is needed. generate build dir as follows:
-
-cmake -DCMAKE_BUILD_TYPE=Release -G "CodeBlocks - Unix Makefiles" -S /home/vchari/ciis/programming_assigment_one -B /home/vchari/ciis/programming_assigment_one/DIRNAME
-
-then run:
-
-cmake --build /home/vchari/ciis/programming_assigment_one/DIRNAME --target programming_assigment_one
+Instructions for building executable:
+    obviously replace paths with your own paths.
+    cmake is needed. generate build dir as follows:
+        cmake -DCMAKE_BUILD_TYPE=Release -G "CodeBlocks - Unix Makefiles" -S /home/vchari/ciis/programming_assigment_one -B /home/vchari/ciis/programming_assigment_one/BUILD_DIRNAME
+    then run:
+        cmake --build /home/vchari/ciis/programming_assigment_one/BUILD_DIRNAME --target programming_assigment_one
+Instructions for using executable:
+    Example:
+        ./programming_assignment_one OUTPUTDIRNAME/ input_data/pa1-unknown-a
+    First argument to executable is the dir to write all output files.
+    Second argument to executable is the dir AND prefix for the datafiles (e.g "input_data/pa1-unknown-a", "input_data/pa1-debug-d", etc.)
+Source files and description of each file:
+	main.cpp - executable file for running the PA1 program on a set of files.
+	frame_lib.h - file containing methods for frame transformations, both calculating and applying them.
+	register.h - file containing a Procrustes class and CoherentPointDrift class which are used to calculate a frame transformation.
+	calibration.h - file with pivot_calibration_routine method to calculate the position of the calibration post.
+	read_input_files.h - file containing various methods and structures for reading input files and storing data.
+	write_output_files.h - file which writes the necessary data into the required output file format.
