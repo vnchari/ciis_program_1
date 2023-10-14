@@ -1,0 +1,3 @@
+Mean Error for EM Pivot Post Pos. : 0.0027378 mm
+Mean Error for Optical Pivot Post Pos. : 0.00442929 mm
+Mean Error in C: 0.005207 mm
