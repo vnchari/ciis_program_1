@@ -1,5 +1,5 @@
 //
-// Created by Aabha on 10/11/2023.
+// Created by Aabhas on 10/11/2023.
 //
 
 #ifndef PROGRAMMING_ASSIGMENT_ONE_WRITE_OUTPUT_FILE_H
