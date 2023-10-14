@@ -1,7 +1,6 @@
 #include <chrono>
 #include <iostream>
 #include <filesystem>
-#include "Eigen/StdVector"
 #include "geometry/frame_lib.h"
 #include "geometry/register.h"
 #include "geometry/calibration.h"

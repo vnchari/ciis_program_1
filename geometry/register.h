@@ -5,8 +5,8 @@
 #ifndef PROGRAMMING_ASSIGMENT_ONE_REGISTER_H
 #define PROGRAMMING_ASSIGMENT_ONE_REGISTER_H
 
-#include <Eigen/Dense>
-#include <Eigen/SVD>
+#include "Eigen/Dense"
+#include "Eigen/SVD"
 
 namespace Registration {
 
@@ -143,7 +143,7 @@ Procrustes<T>::Procrustes(const Eigen::Matrix<T, -1, 3> M,
   auto U_T = EIGENSVD.matrixU().transpose();
   auto V = EIGENSVD.matrixV();
   Eigen::Matrix<T, 3, 3> C = Eigen::Matrix<T, 3, 3>::Identity();
-  C(2, 2) = (U_T * V).determinant();
+  C(2, 2) = (V * U_T).determinant();
   B = V * C * U_T;
   t = center_N - center_M * B.transpose();
 }
