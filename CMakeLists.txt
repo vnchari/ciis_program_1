@@ -7,7 +7,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    set( CMAKE_CXX_FLAGS  "-march=native -O3 -Wall -Wextra")
+    set( CMAKE_CXX_FLAGS  "-O3 -Wall -Wextra")
 endif()
 find_package (Eigen3 3.4 NO_MODULE)
 if(NOT TARGET Eigen::Eigen)
