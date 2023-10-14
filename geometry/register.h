@@ -1,6 +1,11 @@
 //
 // Created by Vivek Chari on 10/11/23.
 //
+// This file contains methods and classes that aid in point set registration
+// Both classes take two set of points,  X and Y, and compute a transformation
+// Y = RX + t.
+// There are two methods exposed, Coherent Point Drift and Procrustes (Arun's method).
+// There is also a draft of a function to compute distortion correction.
 
 #ifndef PROGRAMMING_ASSIGMENT_ONE_REGISTER_H
 #define PROGRAMMING_ASSIGMENT_ONE_REGISTER_H
@@ -10,8 +15,25 @@
 
 namespace Registration {
 
-    uint64_t COHERENTPOINTDRIFT = 0;
-    uint64_t PROCRUSTES = 1;
+uint64_t COHERENTPOINTDRIFT = 0;
+uint64_t PROCRUSTES = 1;
+
+template<typename T>
+Eigen::Matrix<T, -1, 3> compute_distortion_correction(Eigen::Matrix<T, -1, 3> X, Eigen::Matrix<T, -1, 3> Y, T beta = 1, T lambda = 0.01) {
+  Eigen::Matrix<T, -1, -1> G(X.rows(), X.rows());
+  if (X.rows() != Y.rows())
+    throw std::invalid_argument("X and Y must have the same number of rows.");
+  for (size_t i = 0; i < X.rows(); i++) {
+    for (size_t j = i; j < X.rows(); j++) {
+      T val = -1.0 / (2 * std::pow(beta, 2)) * (X.row(i) - X.row(j)).squaredNorm();
+      G(i, j) = G(j, i) = val;
+    }
+  }
+  Eigen::Matrix<T, -1, -1> regularized_G = (lambda > 0) ? G + Eigen::Matrix<T, -1, -1>::Identity(X.rows(), X.rows()) * lambda : G;
+  Eigen::Matrix<T, -1, -1> sol = regularized_G.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(Y - X);
+  return G * sol;
+}
+
 
 template<typename T>
 class CoherentPointDrift {
@@ -25,6 +47,8 @@ class CoherentPointDrift {
     T tol;
     long iter;
     double size_N, size_M; //number of points
+    void expectation();
+    void maximization();
 public:
     Eigen::Matrix<T, 3, 3> B; //rotation
     Eigen::Vector<T, 3> t; //translation
@@ -33,10 +57,6 @@ public:
                        long niter = 250, T term_tol = 0.001);
 
     void register_points_cpd();
-
-    void expectation();
-
-    void maximization();
 };
 
 template<typename T>
@@ -53,6 +73,7 @@ void CoherentPointDrift<T>::register_points_cpd() {
 
 template<typename T>
 void CoherentPointDrift<T>::maximization() {
+  //follows the paper very closely (modulo the use of fast gauss transforms)
   auto N_p = prob.sum();
   auto colwise_prob = (prob.colwise().sum()).transpose(); //M
   auto rowwise_prob = prob.rowwise().sum() * (1.0f / N_p); //N
@@ -96,12 +117,10 @@ CoherentPointDrift<T>::CoherentPointDrift(Eigen::Matrix<T, -1, 3, Eigen::RowMajo
                                           Eigen::Matrix<T, -1, 3, Eigen::RowMajor> N_arg,
                                           long niter,
                                           T term_tol) {
-  tol = term_tol;
-  iter = niter;
-  M = M_arg;
-  N = N_arg;
-  size_M = M.rows();
-  size_N = N.rows();
+  //see paper alogorithm. there is an almost one-to-one correspondance in how this is implemented.
+  M = M_arg; N = N_arg;
+  tol = term_tol; iter = niter;
+  size_M = M.rows(); size_N = N.rows();
   for (int n = 0; n < size_N; n++)
     for (int m = 0; m < size_M; m++)
       sigma_square += (N.row(n) - M.row(m)).squaredNorm();
@@ -138,12 +157,13 @@ Procrustes<T>::Procrustes(const Eigen::Matrix<T, -1, 3> M,
   auto centered_M = M.rowwise() - center_M;
   auto centered_N = N.rowwise() - center_N;
 
-  //
+  //Arun's method for point set registration
   EIGENSVD.compute(centered_M.transpose() * centered_N, Eigen::ComputeFullU | Eigen::ComputeFullV);
   auto U_T = EIGENSVD.matrixU().transpose();
   auto V = EIGENSVD.matrixV();
   Eigen::Matrix<T, 3, 3> C = Eigen::Matrix<T, 3, 3>::Identity();
   C(2, 2) = (U_T * V).determinant();
+  // N = MB + t
   B = V * C * U_T;
   t = center_N - center_M * B.transpose();
 }

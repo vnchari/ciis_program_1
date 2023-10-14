@@ -1,6 +1,14 @@
 //
 // Created by Vivek Chari on 10/10/23.
 //
+// This file contains methods and classes that contruct "frame graphs"
+// that describe the relationship between different frames. It contains
+// a class FrameTransformation that can be used to store frame transformations
+// in a packed 4x4 matrix, along with methods to apply the transform to vectors
+// and matrices, as well as methods to compute (and apply) the inverse transform.
+// The FrameGraph class provides an interface to easily compute and apply
+// transforms between frames, and has an internal BFS that computes the shortest path
+// between any frames in the graph.
 
 #ifndef PROGRAMMING_ASSIGMENT_ONE_FRAME_LIB_H
 #define PROGRAMMING_ASSIGMENT_ONE_FRAME_LIB_H
@@ -9,40 +17,44 @@
 #include <set>
 #include <list>
 #include <iostream>
-#include "Eigen/StdVector"
-#include "Eigen/Dense"
 #include "register.h"
+#include "Eigen/Dense"
+#include "Eigen/StdVector"
 
-
+// class to house frame, inverse frame, and frame application methods.
 template<typename T>
 class FrameTransformation {
     Eigen::Matrix<T, 4, 4> frame;
     Eigen::Matrix<T, 4, 4> iframe;
 public:
     FrameTransformation(Eigen::Matrix<T, 3, 3> rot, Eigen::Vector<T, 3> pos);
-    void invert();
+    void compute_inverse();
     Eigen::Vector<T,3> apply_forward_transform(Eigen::Vector<T,3> vec);
     Eigen::Vector<T,3> apply_inverse_transform(Eigen::Vector<T,3> vec);
     Eigen::Matrix<T,-1, 3> apply_forward_transform(Eigen::Matrix<T,-1, 3> mat);
-    Eigen::Matrix<T,-1, 3> apply_inverse_transform(Eigen::Matrix<T,-1, 3> mat);
+    Eigen::Matrix<T,-1, 3> apply_inverse_transform(Eigen::Matrix<T,-1, 3> packed_pts);
     Eigen::Matrix<T, 4, 4> get_frame() {return frame;};
     Eigen::Matrix<T, 4, 4> get_iframe() {return iframe;};
 };
 
+// this is not very efficient. it will be refactored into a single packed_pts multiply later on
 template<typename T>
-Eigen::Matrix<T,-1, 3> FrameTransformation<T>::apply_inverse_transform(const Eigen::Matrix<T, -1, 3> mat) {
-  Eigen::Matrix<T, -1, 3> tmp = Eigen::Matrix<T, -1, 3>::Ones(mat.rows(), 3);
-  for(int i = 0; i < mat.rows(); i++) {
-    const auto vec = mat.row(i);
+Eigen::Matrix<T,-1, 3> FrameTransformation<T>::apply_inverse_transform(const Eigen::Matrix<T, -1, 3> packed_pts) {
+  Eigen::Matrix<T, -1, 3> tmp = Eigen::Matrix<T, -1, 3>::Ones(packed_pts.rows(), 3);
+  //for every point in packed_pts, compute the inverse transform and store it
+  for(int i = 0; i < packed_pts.rows(); i++) {
+    const auto vec = packed_pts.row(i);
     Eigen::Vector<T, 4> tmpvec =  {vec[0], vec[1], vec[2], 1};
     tmp.row(i) = (iframe * tmpvec).template head<3>();
   }
   return tmp;
 }
 
+// this is not very efficient. it will be refactored into a single mat multiply later on
 template<typename T>
 Eigen::Matrix<T,-1, 3> FrameTransformation<T>::apply_forward_transform(const Eigen::Matrix<T, -1, 3> mat) {
   Eigen::Matrix<T, -1, 3> tmp = Eigen::Matrix<T, -1, 3>::Ones(mat.rows(), 3);
+  //for every point in packed_pts, compute the transform and store it
   for(int i = 0; i < mat.rows(); i++) {
     const auto vec = mat.row(i);
     Eigen::Vector<T, 4> tmpvec =  {vec[0], vec[1], vec[2], 1};
@@ -64,11 +76,14 @@ Eigen::Vector<T, 3> FrameTransformation<T>::apply_forward_transform(const Eigen:
 }
 
 template<typename T>
-void FrameTransformation<T>::invert() {
-  iframe = frame;
-  iframe.transposeInPlace();
+void FrameTransformation<T>::compute_inverse() {
+  //the 4x4 matrix "frame" stores the transform
+  //transpose the top left 3x3 block (recall that R^{-1} = R^T)
+  iframe = frame.transpose();
+  //compute t^{-1} = -R^{-1}t
   iframe.template block<3,1>(0, 3) =
           -1 * iframe.template block<3,3>(0, 0) * iframe.template block<1, 3>(3, 0).transpose();
+  //make sure to zero the bottom row of the packed transform. it is now [0,0,0,1]
   iframe.template block<1, 3>(3, 0).setZero();
 }
 
@@ -76,25 +91,32 @@ void FrameTransformation<T>::invert() {
 template<typename T>
 FrameTransformation<T>::FrameTransformation(Eigen::Matrix<T, 3, 3> rot, Eigen::Vector<T, 3> pos) {
   frame.setIdentity();
+  //store the frame transform packed in a 4x4 matrix. this just sets the appropriate blocks in the matrix.
   frame.template block<3, 3>(0, 0)= rot;
   frame.template block<3, 1>(0, 3) = pos;
+  compute_inverse();
 }
 
-
+//helper method to test implementations. this generates a random 3x3 orthogonal matrix.
 template<typename T>
 Eigen::Matrix<T,3, 3> gen_random_orthogonal(){
   return Eigen::Quaternion<T>::UnitRandom().toRotationMatrix();
 }
 
+//class to hold a graph of frame transforms, and call appropriate ones when needed.
 template<typename T>
 class FrameGraph {
+    //edge class to store information on a transform.
     struct edge {
         std::string dest;
         FrameTransformation<T> transform;
+        //we need to know whether this edge is an inverse, because the same transform object representes both
+        // A->B and B->A
         bool is_inverse = false;
     };
     std::map<std::string, std::vector<edge>> graph;
     uint64_t registration_method = -1;
+    //helper vars for BFS.
     std::map<std::string, std::pair<std::string, uint64_t>> prev_and_dist;
     std::set<std::string> set;
   public:
@@ -110,6 +132,9 @@ class FrameGraph {
       void clear() {graph.clear(); set.clear(); prev_and_dist.clear();}
 };
 
+
+//given a vector of edges (A,B),(C, D),.... retrieve the packed transform matrices for each of these edges, respecting
+// whether the edge represents a forward or inverse transform. Mainly for use in pivot calibration.
 template<typename T>
 std::vector<Eigen::Matrix<T, 4, 4>, Eigen::aligned_allocator<Eigen::Matrix<T, 4, 4>>>
 FrameGraph<T>::retrieve_transform_matrices(std::vector<std::pair<std::string, std::string>> &transforms) {
@@ -125,9 +150,14 @@ FrameGraph<T>::retrieve_transform_matrices(std::vector<std::pair<std::string, st
   return res;
 }
 
+//given points in frame "A" and a frame "B" compute the transform "B from A". The points returned will now be in the
+// coordinate frame "B". This methods traverses the internal graph using Djikstra's method to find the shortest
+//path connecting the two frames, and then computes the appropriate transform by chaining transforms along
+// traversed edges.
 template<typename T>
 Eigen::Matrix<T, -1, 3> FrameGraph<T>::apply_transform(const std::string& frame_A_name, const std::string& frame_B_name,
                                                        Eigen::Matrix<T, -1, 3> points_in_A) {
+  //helper vars for Djikstra's
   prev_and_dist.clear();
   set.clear();
   for(auto a : graph) {
@@ -135,6 +165,8 @@ Eigen::Matrix<T, -1, 3> FrameGraph<T>::apply_transform(const std::string& frame_
     set.insert(a.first);
   }
   prev_and_dist[frame_A_name] = std::pair<std::string, uint64_t>("", 0);
+  //do Djikstra BFS. Not the most efficient implementation, but it works.
+  //TODO: Refactor with focus on speed
   while (!set.empty()) {
       std::string best; T dist = INFINITY;
       for(const auto& node : set) {
@@ -159,6 +191,7 @@ Eigen::Matrix<T, -1, 3> FrameGraph<T>::apply_transform(const std::string& frame_
         }
       }
   }
+  //reconstruct the shortest path taken
   std::list<std::string> transform_chain;
   auto target = frame_B_name;
   while(target != frame_A_name) {
@@ -168,6 +201,7 @@ Eigen::Matrix<T, -1, 3> FrameGraph<T>::apply_transform(const std::string& frame_
   transform_chain.push_front(frame_A_name);
   Eigen::Matrix<T, -1, 3> res = points_in_A;
   size_t sz = transform_chain.size();
+  //traverse the shortest path, applying transforms as we go along the path.
   for(size_t i = 0; i < sz; i++) {
     auto cur = transform_chain.front();
     transform_chain.pop_front();
@@ -178,9 +212,12 @@ Eigen::Matrix<T, -1, 3> FrameGraph<T>::apply_transform(const std::string& frame_
         break;
       }
   }
+  //points are now in frame B.
   return res;
 }
 
+//given two frames, and corresponding point sets, compute a transform and register it in the graph.
+//call into different registration subroutines depending on user specification.
 template<typename T>
 void FrameGraph<T>::register_transform(std::string frame_A_name, Eigen::Matrix<T, -1, 3> points_in_A,
                                        std::string frame_B_name, Eigen::Matrix<T, -1, 3> points_in_B) {
@@ -192,7 +229,8 @@ void FrameGraph<T>::register_transform(std::string frame_A_name, Eigen::Matrix<T
 }
 
 
-
+//given points in frame "A" and a frame "B" compute the tranform "B from A". The points returned will now be in the
+// coordinate frame "B".  This method assumes a direct connection between A and B
 template<typename T>
 Eigen::Matrix<T, -1, 3> FrameGraph<T>::apply_direct_transform(const std::string& frame_A_name, const std::string& frame_B_name,
                                                              Eigen::Matrix<T, -1, 3> points_in_A) {
@@ -222,7 +260,6 @@ void FrameGraph<T>::_register_transform_procrustes(const std::string& frame_A_na
     graph[frame_B_name] =  std::vector<edge>();
 
   FrameTransformation<T> t(registration.B, registration.t);
-  t.invert();
   graph.at(frame_A_name).emplace_back(frame_B_name, t, false);
   graph.at(frame_B_name).emplace_back(frame_A_name, t, true);
 }
@@ -239,7 +276,6 @@ void FrameGraph<T>::_register_transform_cpd(const std::string& frame_A_name,
     graph[frame_B_name] =  std::vector<edge>();
 
   FrameTransformation<T> t(registration.B, registration.t);
-  t.invert();
   graph.at(frame_A_name).emplace_back(frame_B_name, t, false);
   graph.at(frame_B_name).emplace_back(frame_A_name, t, true);
 }
