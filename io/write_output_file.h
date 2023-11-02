@@ -35,5 +35,19 @@ void write_output_file(const std::string& filename,
   output_file.close();
 }
 
+template<typename T>
+void write_output_file_pa2(const std::string& filename,
+                           size_t n_frames,
+                           Eigen::Matrix<T, 3, Eigen::Dynamic> v_vals) {
+    std::ofstream output_file;
+    output_file.open(filename);
+    output_file << n_frames << ", NAME-OUTPUT2.TXT" << std::endl;
+    output_file << std::fixed;
+    output_file << std::setprecision(2);
+    for (size_t i = 0; i < n_frames; i++) {
+        output_file << "  " << v_vals(0, i) << ",   " << v_vals(1, i) << ",   " << v_vals(2, i) << "\n";
+    }
+    output_file.close();
+}
 
 #endif //PROGRAMMING_ASSIGMENT_ONE_WRITE_OUTPUT_FILE_H
