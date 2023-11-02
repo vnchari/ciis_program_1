@@ -22,6 +22,15 @@ public:
     [[nodiscard]] const char * what() const noexcept override {return filename.c_str();}
 };
 
+template<typename T>
+struct CTFIDUCIALSDATA {
+    Eigen::Matrix<T, 3, Eigen::Dynamic> n_b_vals;
+};
+
+template<typename T>
+struct EMFIDUCIALSDATA {
+    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>, Eigen::aligned_allocator<Eigen::Matrix<T, 3, Eigen::Dynamic>>> n_G_vals;
+};
 
 template<typename T>
 struct OPTPIVOTDATA {
@@ -38,7 +47,7 @@ struct CALREADINGSDATA {
 };
 
 template<typename T>
-struct EMPIVOTDATA {
+struct EMDATA {
     std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>, Eigen::aligned_allocator<Eigen::Matrix<T, 3, Eigen::Dynamic>>> n_G_vals;
 };
 
@@ -58,6 +67,34 @@ struct DEBUGDATA {
     std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>, Eigen::aligned_allocator<Eigen::Matrix<T, 3, Eigen::Dynamic>>> C_vals;
 };
 
+template <typename T>
+struct CTFIDUCIALSDATA<T> read_ctfiducials_file(const std::string &file_name) {
+    std::ifstream in(file_name.data());
+    if (!in.is_open()) {
+        throw FileNotFound(file_name);
+    }
+
+    std::string line;
+    char tmp;
+    int n_b;
+    std::string file_name_for_output;
+
+    std::getline(in, line);
+    std::istringstream iss_line(line);
+    iss_line >> n_b >> tmp;
+    std::getline(iss_line, file_name_for_output);
+    Eigen::Matrix<T, 3, Eigen::Dynamic> n_b_vals(3, n_b);
+    n_b_vals.setZero();
+    for (int i = 0; i < n_b; i++) {
+        std::getline(in, line);
+        std::istringstream iss_line(line);
+        iss_line >> n_b_vals(0, i) >> tmp;
+        iss_line >> n_b_vals(1, i) >> tmp;
+        iss_line >> n_b_vals(2, i);
+    }
+
+    return CTFIDUCIALSDATA<T> {n_b_vals};
+}
 template<typename T>
 struct CALBODYDATA<T> read_calbody_file(const std::string &file_name) {
   std::ifstream in(file_name.data());
@@ -223,8 +260,8 @@ CALREADINGSDATA<T> read_calreadings_data(const std::string &file_name) {
 }
 
 template<typename T>
-EMPIVOTDATA<T> read_empivot_data(const std::string &file_name) {
-  EMPIVOTDATA<T> data;
+EMDATA<T> read_em_data(const std::string &file_name) {
+  EMDATA<T> data;
 
   std::ifstream in(file_name.data());
   if (!in.is_open())

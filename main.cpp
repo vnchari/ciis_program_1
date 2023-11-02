@@ -29,12 +29,21 @@ int main(int argc, char ** argv) {
   //load data from files.
   FrameGraph<PRECISION> graph(Registration::PROCRUSTES);
   CALBODYDATA<PRECISION> calbodydata; OPTPIVOTDATA<PRECISION> optpivotdata;
-  EMPIVOTDATA<PRECISION> empivotdata; CALREADINGSDATA<PRECISION> calreadingsdata;
+  EMDATA<PRECISION> empivotdata; CALREADINGSDATA<PRECISION> calreadingsdata;
+  CTFIDUCIALSDATA<PRECISION> ctfiducialsdata; EMDATA<PRECISION> emfiducialsdata;
+  EMDATA<PRECISION> emnavdata;
   try {
     calbodydata = read_calbody_file<PRECISION>(testprefix + "-calbody.txt");
     optpivotdata = read_optpivot_data<PRECISION>(testprefix + "-optpivot.txt");
-    empivotdata = read_empivot_data<PRECISION>(testprefix + "-empivot.txt");
+    empivotdata = read_em_data<PRECISION>(testprefix + "-empivot.txt");
     calreadingsdata = read_calreadings_data<PRECISION>(testprefix + "-calreadings.txt");
+    ctfiducialsdata = read_ctfiducials_file<PRECISION>(testprefix + "-ct-fiducials.txt");
+    emfiducialsdata = read_em_data<PRECISION>(testprefix + "-em-fiducials.txt");
+    emnavdata = read_em_data<PRECISION>(testprefix + "-EM-nav");
+    std::cout << ctfiducialsdata.n_b_vals << std::endl;
+    std::cout << emfiducialsdata.n_G_vals << std::endl;
+    std::cout << emnavdata.n_G_vals << std::endl;
+
   } catch (FileNotFound& e) {
     std::cerr << e.what() << std::endl;
     exit(1);
