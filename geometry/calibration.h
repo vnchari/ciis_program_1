@@ -12,7 +12,7 @@
 #include "frame_lib.h"
 
 template<typename T>
-Eigen::Vector<T, 6> solve_least_squares(const std::vector<Eigen::Matrix<T, 4, 4>,
+Eigen::Vector<T, 6> solve_lstsq_pivot_calibration(const std::vector<Eigen::Matrix<T, 4, 4>,
         Eigen::aligned_allocator<Eigen::Matrix<T, 4, 4>>> &vec) {
   Eigen::Matrix<T, -1, 6> A = Eigen::Matrix<T, -1, 6>(vec.size() * 3,6);
   Eigen::Vector<T, -1> b = Eigen::Vector<T, -1>(vec.size() * 3);
@@ -53,7 +53,7 @@ std::pair<Eigen::Vector3<T>, Eigen::Vector3<T>> pivot_calibration_routine(const 
   }
   //solves the least squares problem given by the set of transforms, assuming that
   // F_1 * g = F_2 * g = ... = F_k * g
-  auto sol = solve_least_squares( graph.retrieve_transform_matrices(frame_pairs));
+  auto sol = solve_lstsq_pivot_calibration(graph.retrieve_transform_matrices(frame_pairs));
   //first 3 coeffs of vector are the location of the tip of the pointer in local pointer frame.
   return std::pair<Eigen::Vector3<T>, Eigen::Vector3<T>>(sol.template head<3>(), sol.template tail<3>());
 }
