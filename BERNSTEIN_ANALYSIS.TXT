@@ -1,0 +1,27 @@
+APPLYING DISTORTION CORRECTION WITH DEGREE 1 POLYNOMIALS.
+Executed all computations in: 2534 us
+Mean Error for Nav Vals. : 0.846881 mm
+
+APPLYING DISTORTION CORRECTION WITH DEGREE 2 POLYNOMIALS.
+Executed all computations in: 6489 us
+Mean Error for Nav Vals. : 0.724173 mm
+
+APPLYING DISTORTION CORRECTION WITH DEGREE 3 POLYNOMIALS.
+Executed all computations in: 16038 us
+Mean Error for Nav Vals. : 0.46867 mm
+
+APPLYING DISTORTION CORRECTION WITH DEGREE 4 POLYNOMIALS.
+Executed all computations in: 36476 us
+Mean Error for Nav Vals. : 0.00426388 mm
+
+APPLYING DISTORTION CORRECTION WITH DEGREE 5 POLYNOMIALS.
+Executed all computations in: 71231 us
+Mean Error for Nav Vals. : 0.00664043 mm
+
+APPLYING DISTORTION CORRECTION WITH DEGREE 6 POLYNOMIALS.
+Executed all computations in: 137780 us
+Mean Error for Nav Vals. : 0.0170514 mm
+
+APPLYING DISTORTION CORRECTION WITH DEGREE 7 POLYNOMIALS.
+Executed all computations in: 251447 us
+Mean Error for Nav Vals. : 0.0237538 mm

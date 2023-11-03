@@ -1,6 +1,11 @@
 //
 // Created by Vivek Chari on 11/1/23.
 //
+// The following file contains methods related to bernstein polynomial distortion correction.
+// It includes methods to both compute the coefficients, and apply a distortion correction.
+// One can pass either a list of frames or a "packed" matrix to the aforementioned methods.
+// Additionally, this file contains  unit tests at the component level for each of the
+// methods and helper methods implement below.
 
 #ifndef PROGRAMMING_ASSIGMENT_ONE_DISTORTION_CORRECTION_H
 #define PROGRAMMING_ASSIGMENT_ONE_DISTORTION_CORRECTION_H
@@ -28,7 +33,7 @@ template<size_t degree, typename T>
 struct DISTORTIONCOEFFICIENTS<degree, T> compute_distortion_coeffs(Eigen::Matrix<T, Eigen::Dynamic, 3> measured,
         Eigen::Matrix<T, Eigen::Dynamic, 3> ground_truth) {
   DISTORTIONCOEFFICIENTS<degree, T> output;
-  //lambda function that compute the coefficient at a point in space.
+  //lambda function that compute the coefficient associated with the bernstein polynomial at a point in space.
   auto F = [](size_t index, Eigen::Vector3<T> vec) {
     return nth_degree_bernstein_polynomial<degree, T>((index / (int) pow(degree + 1, 2)) % (degree + 1), vec(0)) *
             nth_degree_bernstein_polynomial<degree, T>((index / (int) pow(degree + 1, 1)) % (degree + 1), vec(1)) *
@@ -46,13 +51,14 @@ struct DISTORTIONCOEFFICIENTS<degree, T> compute_distortion_coeffs(Eigen::Matrix
     for(size_t j = 0; j < num_sequences; j++)
       //accessing this way improves cache locality.
       A(i, j) = F(j, scaled_points.row(i));
-  //compute MP pseudoinverse to solve the lstsq problem
+  //compute M-P pseudoinverse to solve the lstsq problem
   output.coeffs = A.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(ground_truth);
   return output;
 }
 
 template<size_t degree, typename T>
 Eigen::Matrix<T, Eigen::Dynamic, 3> apply_distortion_correction(DISTORTIONCOEFFICIENTS<degree, T> coeffs, Eigen::Matrix<T, Eigen::Dynamic, 3> points) {
+  //lambda function that computes the coefficient associated with the bernstein polynomial at a point in space.
   auto F = [](size_t index, Eigen::Vector3<T> vec) {
       return nth_degree_bernstein_polynomial<degree, T>((index / (int) pow(degree + 1, 2)) % (degree + 1) , vec(0)) *
              nth_degree_bernstein_polynomial<degree, T>((index / (int) pow(degree + 1, 1)) % (degree + 1), vec(1)) *
@@ -69,6 +75,7 @@ Eigen::Matrix<T, Eigen::Dynamic, 3> apply_distortion_correction(DISTORTIONCOEFFI
     for(size_t j = 0; j < num_sequences; j++)
       //accessing this way improves cache locality.
       A(i, j) = F(j, scaled_points.row(i));
+  // right action of the coefficients on the design matrix computes the ground truth values.
   return A * coeffs.coeffs;
 }
 
@@ -87,14 +94,16 @@ void unit_test_compute_distortion_coeffs() {
 
 }
 
-
+//overloaded apply_distortion_correction to allow for passing a vector of frames, packing the frames, and then unpacking
+//just for convenience.
 template<int degree, typename T>
 VECTOROF3XDMATRICES<T> apply_distortion_correction(DISTORTIONCOEFFICIENTS<degree, T> coeffs, VECTOROF3XDMATRICES<T> points) {
   int n_frames = points.size(); int num_markers = points[0].cols();
   return unpack_points<T>(apply_distortion_correction<degree, T>(coeffs, pack_points<T>(points, n_frames, num_markers)), n_frames, num_markers);
 }
 
-
+//overloaded compute_distortion_coeffs to allow for passing a vector of frames, packing the frames, and then unpacking.
+//just for convenience.
 template<int degree, typename T>
 struct DISTORTIONCOEFFICIENTS<degree, T> compute_distortion_coeffs(VECTOROF3XDMATRICES<T> measured,
                                                            VECTOROF3XDMATRICES<T> ground_truth) {
@@ -105,7 +114,8 @@ struct DISTORTIONCOEFFICIENTS<degree, T> compute_distortion_coeffs(VECTOROF3XDMA
 
 
 
-//takes a single matrix of size (num_frames * num_markers) x 3 and unpacks the matrix into a vector of num_frames different 3 x num_markers matrices
+//takes a single matrix of size (num_frames * num_markers) x 3 and unpacks the matrix into a
+// vector of num_frames different 3 x num_markers matrices
 template<typename T>
 VECTOROF3XDMATRICES<T> unpack_points(Eigen::Matrix<T, Eigen::Dynamic, 3> packed, int num_frames, int num_markers) {
   VECTOROF3XDMATRICES<T> unpacked;
@@ -131,7 +141,8 @@ void unit_test_unpack_points() {
 }
 
 
-//takes a vector of num_frames  3 x num_markers matrices and packs them into a single matrix of size (num_frames * num_markers) x 3
+//takes a vector of num_frames  3 x num_markers matrices and packs them
+// into a single matrix of size (num_frames * num_markers) x 3
 template<typename T>
 Eigen::Matrix<T, Eigen::Dynamic, 3> pack_points(VECTOROF3XDMATRICES<T> points, int num_frames, int num_markers) {
   Eigen::Matrix<T, -1, 3> packed = Eigen::Matrix<T, -1, 3>(num_frames * num_markers, 3);

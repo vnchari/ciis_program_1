@@ -8,7 +8,7 @@
 #include "io/write_output_file.h"
 #include "geometry/distortion_correction.h"
 
-#define PRECISION double //all methods/classses/procedures work with both float and double precision.
+#define PRECISION float //all methods/classses/procedures work with both float and double precision.
 
 #define BERNSTEIN_DEGREE 5 //degree of bernstein polynomials used in distortion correction
 
@@ -111,18 +111,25 @@ int main(int argc, char ** argv) {
   }
   // apply procrustes to determine the transform from EM to CT_SCAN
   graph.register_transform("EM_TRACKER", points_in_em, "CT_SCAN", ctfiducialsdata.b_vals.transpose());
-  // apply distortion correction to all values read from the EM, including the EM Nav vals
+  // apply distortion correction to all values read from the EM, including the EM Nav vals.
   VECTOROF3XDMATRICES<PRECISION> distortion_corrected_em_nav_G_vals = apply_distortion_correction<BERNSTEIN_DEGREE, PRECISION>(coeffs,emnavdata.G_vals);
+  //this will store the given EM Probe locations in CT coords
   Eigen::Matrix<PRECISION,-1, 3> ct_nav_G_vals(emnavdata.G_vals.size(), 3);
   for (size_t i = 0; i < emnavdata.G_vals.size(); i++){
+    //compute the transform from the coordinates in which the tip location is known (taken from pivot calibration),
+    // to the current EM probe location (at a nav loc)
     graph.register_transform("FRAME_0_PIVOTCAL", frame_zero_local_coords,
                              "CURRENT_EM_PROBE_" + std::to_string(i), distortion_corrected_em_nav_G_vals[i].transpose());
+    //transform the location of the tip in EM coords to the ct coord system
     ct_nav_G_vals.row(i) = graph.apply_direct_transform("EM_TRACKER", "CT_SCAN",
+                      //compute the location of the tip in EM coords.
           graph.apply_direct_transform("FRAME_0_PIVOTCAL", "CURRENT_EM_PROBE_" + std::to_string(i), empivot_results.first.transpose()));
   }
 
   std::cout << "Executed all computations in: " <<
             std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - begin).count() << " us" << std::endl;
+
+  //DEBUG FILE ERROR ANALYSIS
   //write files
   if(debug) {
     try {
@@ -136,6 +143,7 @@ int main(int argc, char ** argv) {
       std::cout << e.what() << " Continuing without error check." << std::endl;
     }
   }
+
   write_output_file_pa2<PRECISION>(outdir + testname + "-output2-us.txt", emnavdata.G_vals.size(), ct_nav_G_vals);
   std::cout << "Successfully wrote " << outdir << testname << "-output2-us.txt" << std::endl;
   return 0;
