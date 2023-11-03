@@ -24,7 +24,7 @@ public:
 
 template<typename T>
 struct CTFIDUCIALSDATA {
-    Eigen::Matrix<T, 3, Eigen::Dynamic> n_b_vals;
+    Eigen::Matrix<T, 3, Eigen::Dynamic> b_vals;
 };
 
 template<typename T>
@@ -34,28 +34,28 @@ struct EMFIDUCIALSDATA {
 
 template<typename T>
 struct OPTPIVOTDATA {
-    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>, Eigen::aligned_allocator<Eigen::Matrix<T, 3, Eigen::Dynamic>>> n_D_vals;
-    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>, Eigen::aligned_allocator<Eigen::Matrix<T, 3, Eigen::Dynamic>>> n_H_vals;
+    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>, Eigen::aligned_allocator<Eigen::Matrix<T, 3, Eigen::Dynamic>>> D_vals;
+    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>, Eigen::aligned_allocator<Eigen::Matrix<T, 3, Eigen::Dynamic>>> H_vals;
 };
 
 template<typename T>
 struct CALREADINGSDATA {
     int n_frames, n_C;
-    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>, Eigen::aligned_allocator<Eigen::Matrix<T, 3, Eigen::Dynamic>>> n_D_vals;
-    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>, Eigen::aligned_allocator<Eigen::Matrix<T, 3, Eigen::Dynamic>>> n_A_vals;
-    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>, Eigen::aligned_allocator<Eigen::Matrix<T, 3, Eigen::Dynamic>>> n_C_vals;
+    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>, Eigen::aligned_allocator<Eigen::Matrix<T, 3, Eigen::Dynamic>>> D_vals;
+    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>, Eigen::aligned_allocator<Eigen::Matrix<T, 3, Eigen::Dynamic>>> A_vals;
+    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>, Eigen::aligned_allocator<Eigen::Matrix<T, 3, Eigen::Dynamic>>> C_vals;
 };
 
 template<typename T>
 struct EMDATA {
-    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>, Eigen::aligned_allocator<Eigen::Matrix<T, 3, Eigen::Dynamic>>> n_G_vals;
+    std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>, Eigen::aligned_allocator<Eigen::Matrix<T, 3, Eigen::Dynamic>>> G_vals;
 };
 
 template<typename T>
 struct CALBODYDATA {
-    Eigen::Matrix<T, 3, Eigen::Dynamic> n_d_vals;
-    Eigen::Matrix<T, 3, Eigen::Dynamic> n_a_vals;
-    Eigen::Matrix<T, 3, Eigen::Dynamic> n_c_vals;
+    Eigen::Matrix<T, 3, Eigen::Dynamic> d_vals;
+    Eigen::Matrix<T, 3, Eigen::Dynamic> a_vals;
+    Eigen::Matrix<T, 3, Eigen::Dynamic> c_vals;
 };
 
 
@@ -65,6 +65,12 @@ struct DEBUGDATA {
     Eigen::Vector<T, 3> opt_pivot_post_pos;
     Eigen::Vector<T, 3> em_pivot_post_pos;
     std::vector<Eigen::Matrix<T, 3, Eigen::Dynamic>, Eigen::aligned_allocator<Eigen::Matrix<T, 3, Eigen::Dynamic>>> C_vals;
+};
+
+
+template<typename T>
+struct PA2DEBUGDATA {
+    Eigen::Matrix<T, Eigen::Dynamic, 3> ct_nav_vals;
 };
 
 template <typename T>
@@ -176,7 +182,7 @@ OPTPIVOTDATA<T> read_optpivot_data(const std::string &file_name) {
       iss_line >> tmpD(1, j) >> tmp;
       iss_line >> tmpD(2, j);
     }
-    data.n_D_vals.push_back(tmpD);
+    data.D_vals.push_back(tmpD);
 
     Eigen::Matrix<T, 3, Eigen::Dynamic> tmpH;
     tmpH.resize(3, n_H);
@@ -188,7 +194,7 @@ OPTPIVOTDATA<T> read_optpivot_data(const std::string &file_name) {
       iss_line >> tmpH(1, j) >> tmp;
       iss_line >> tmpH(2, j);
     }
-    data.n_H_vals.push_back(tmpH);
+    data.H_vals.push_back(tmpH);
   }
 
   return data;
@@ -227,7 +233,7 @@ CALREADINGSDATA<T> read_calreadings_data(const std::string &file_name) {
       iss_line >> tmpD(1, j) >> tmp;
       iss_line >> tmpD(2, j);
     }
-    data.n_D_vals.push_back(tmpD);
+    data.D_vals.push_back(tmpD);
 
     Eigen::Matrix<T, 3, Eigen::Dynamic> tmpA;
     tmpA.resize(3, n_A);
@@ -239,7 +245,7 @@ CALREADINGSDATA<T> read_calreadings_data(const std::string &file_name) {
       iss_line >> tmpA(1, j) >> tmp;
       iss_line >> tmpA(2, j);
     }
-    data.n_A_vals.push_back(tmpA);
+    data.A_vals.push_back(tmpA);
 
     Eigen::Matrix<T, 3, Eigen::Dynamic> tmpC;
     tmpC.resize(3, n_C);
@@ -251,7 +257,7 @@ CALREADINGSDATA<T> read_calreadings_data(const std::string &file_name) {
       iss_line >> tmpC(1, j) >> tmp;
       iss_line >> tmpC(2, j);
     }
-    data.n_C_vals.push_back(tmpC);
+    data.C_vals.push_back(tmpC);
   }
 
   data.n_frames = n_Frames;
@@ -289,7 +295,7 @@ EMDATA<T> read_em_data(const std::string &file_name) {
       iss_line >> tmpG(1, j) >> tmp;
       iss_line >> tmpG(2, j);
     }
-    data.n_G_vals.push_back(tmpG);
+    data.G_vals.push_back(tmpG);
   }
 
   return data;
@@ -344,6 +350,38 @@ struct DEBUGDATA<T> read_debug_file(const std::string &file_name) {
   }
   data.n_C = n_C;
   data.n_frames = n_frames;
+  return data;
+}
+
+
+template<typename T>
+struct PA2DEBUGDATA<T> read_debug_file_pa2(const std::string &file_name) {
+
+
+  std::ifstream in(file_name.data());
+  if (!in.is_open())
+    throw FileNotFound(file_name);
+
+  std::string line;
+  char tmp;
+  size_t num_nav_vals;
+  std::string file_name_for_output;
+
+  std::getline(in, line);
+  std::istringstream iss_line(line);
+  iss_line >> num_nav_vals >> tmp;
+  std::getline(iss_line, file_name_for_output);
+  PA2DEBUGDATA<T> data;
+  data.ct_nav_vals = Eigen::Matrix<T, -1, 3>(num_nav_vals, 3);
+  iss_line.clear();
+  for (size_t i = 0; i < num_nav_vals; i++) {
+    std::getline(in, line);
+    iss_line.str(line);
+    iss_line >> data.ct_nav_vals(i, 0) >> tmp;
+    iss_line >> data.ct_nav_vals(i, 1) >> tmp;
+    iss_line >> data.ct_nav_vals(i, 2);
+    iss_line.clear();
+  }
   return data;
 }
 
