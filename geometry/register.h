@@ -19,23 +19,6 @@ uint64_t COHERENTPOINTDRIFT = 0;
 uint64_t PROCRUSTES = 1;
 
 template<typename T>
-Eigen::Matrix<T, -1, 3> compute_distortion_correction(Eigen::Matrix<T, -1, 3> X, Eigen::Matrix<T, -1, 3> Y, T beta = 1, T lambda = 0.01) {
-  Eigen::Matrix<T, -1, -1> G(X.rows(), X.rows());
-  if (X.rows() != Y.rows())
-    throw std::invalid_argument("X and Y must have the same number of rows.");
-  for (size_t i = 0; i < X.rows(); i++) {
-    for (size_t j = i; j < X.rows(); j++) {
-      T val = -1.0 / (2 * std::pow(beta, 2)) * (X.row(i) - X.row(j)).squaredNorm();
-      G(i, j) = G(j, i) = val;
-    }
-  }
-  Eigen::Matrix<T, -1, -1> regularized_G = (lambda > 0) ? G + Eigen::Matrix<T, -1, -1>::Identity(X.rows(), X.rows()) * lambda : G;
-  Eigen::Matrix<T, -1, -1> sol = regularized_G.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(Y - X);
-  return G * sol;
-}
-
-
-template<typename T>
 class CoherentPointDrift {
     long D = 3; //dimension
     T w = 0.0;
