@@ -1,3 +1,5 @@
+debug-c
+
 APPLYING DISTORTION CORRECTION WITH DEGREE 1 POLYNOMIALS.
 Executed all computations in: 2534 us
 Mean Error for Nav Vals. : 0.846881 mm
